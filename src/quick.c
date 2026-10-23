@@ -1,4 +1,4 @@
-// Noteflow - minimal quick capture window (noteflow --fast).
+// CWTNote - minimal quick capture window (cwtnote --fast).
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "app.h"

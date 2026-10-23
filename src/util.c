@@ -1,4 +1,4 @@
-// Noteflow - small helpers for paths, config and files.
+// CWTNote - small helpers for paths, config and files.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "util.h"
@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 
 char *nf_config_path(void) {
-    return g_build_filename(g_get_user_config_dir(), "noteflow", "config.conf", NULL);
+    return g_build_filename(g_get_user_config_dir(), "cwtnote", "config.conf", NULL);
 }
 
 char *nf_config_get_vault(void) {
@@ -50,7 +50,7 @@ gboolean nf_config_set_vault(const char *path) {
     g_free(dir);
 
     if (ok) {
-        char *data = g_strdup_printf("# Noteflow configuration\nvault=%s\n", path);
+        char *data = g_strdup_printf("# CWTNote configuration\nvault=%s\n", path);
         ok = g_file_set_contents_full(cfg_path, data, -1,
                                       G_FILE_SET_CONTENTS_CONSISTENT |
                                           G_FILE_SET_CONTENTS_DURABLE,

@@ -1,4 +1,4 @@
-// Noteflow - small Markdown renderer for the preview pane.
+// CWTNote - small Markdown renderer for the preview pane.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "markdown.h"

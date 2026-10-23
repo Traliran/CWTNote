@@ -1,4 +1,4 @@
-// Noteflow - small helpers for paths, config and files.
+// CWTNote - small helpers for paths, config and files.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef NF_UTIL_H
@@ -6,7 +6,7 @@
 
 #include <glib.h>
 
-// Path of the per-user config file ($XDG_CONFIG_HOME/noteflow/config.conf).
+// Path of the per-user config file ($XDG_CONFIG_HOME/cwtnote/config.conf).
 char *nf_config_path(void);
 
 // Vault path stored in the config file, or NULL when not configured.

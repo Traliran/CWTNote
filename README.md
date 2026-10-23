@@ -1,11 +1,11 @@
-# Noteflow
+# CWTNote
 
-Noteflow is a local-first Markdown note application for the Linux desktop. It is
+CWTNote is a local-first Markdown note application for the Linux desktop. It is
 written in C with GTK 4 and libadwaita, keeps notes as plain `.md` files, and
 records every save in a local Git repository. No account, cloud service, or
 network connection is involved.
 
-![Noteflow icon](data/icons/hicolor/scalable/apps/org.noteflow.Noteflow.svg)
+![CWTNote icon](data/icons/hicolor/scalable/apps/org.cwtnote.CWTNote.svg)
 
 ## Features
 
@@ -19,8 +19,8 @@ network connection is involved.
 - Automatic local Git commit after every save, with per-note version history and
   one-click restore.
 - "Revert Last Commit" action.
-- Minimal quick-note window for `noteflow --fast`, suitable for a global hotkey.
-- Optional folder picker on first run; the default vault is `~/Noteflow`.
+- Minimal quick-note window for `cwtnote --fast`, suitable for a global hotkey.
+- Optional folder picker on first run; the default vault is `~/CWTNote`.
 
 ## Requirements
 
@@ -62,7 +62,7 @@ make
 Run from the build directory:
 
 ```sh
-./noteflow
+./cwtnote
 ```
 
 Install system-wide (defaults to `/usr/local`):
@@ -79,18 +79,18 @@ sudo make uninstall
 
 ## First run
 
-On the first launch Noteflow asks for a vault folder. The suggested path is
-`~/Noteflow`; choose another folder with **Browse** if you prefer. The selected
+On the first launch CWTNote asks for a vault folder. The suggested path is
+`~/CWTNote`; choose another folder with **Browse** if you prefer. The selected
 path is stored in:
 
 ```
-$XDG_CONFIG_HOME/noteflow/config.conf
+$XDG_CONFIG_HOME/cwtnote/config.conf
 ```
 
-(usually `~/.config/noteflow/config.conf`). On later launches the vault opens
+(usually `~/.config/cwtnote/config.conf`). On later launches the vault opens
 automatically. The vault folder can be changed later from **Menu → Settings**.
 
-If the folder does not exist, Noteflow creates it. A Git repository is
+If the folder does not exist, CWTNote creates it. A Git repository is
 initialised inside the vault the first time it is opened.
 
 ## Writing notes
@@ -105,12 +105,12 @@ initialised inside the vault the first time it is opened.
   shortly after you stop typing.
 - Toggle the preview with the eye button in the header.
 
-Notes deleted from Noteflow are moved to the system trash. Renaming a folder
+Notes deleted from CWTNote are moved to the system trash. Renaming a folder
 does not rewrite wikilinks inside other notes.
 
 ## Local Git history
 
-Noteflow calls the real `git` binary and never configures a remote. It does not
+CWTNote calls the real `git` binary and never configures a remote. It does not
 push or pull.
 
 - Every save creates a commit containing all pending changes in the vault.
@@ -119,7 +119,7 @@ push or pull.
   used.
 - If the vault is not a repository yet, `git init` runs automatically.
 - If `user.name` or `user.email` is missing, a repository-local identity of
-  `Noteflow <noteflow@localhost>` is used. Global Git settings are not modified.
+  `CWTNote <cwtnote@localhost>` is used. Global Git settings are not modified.
 - Automatic commits disable GPG signing (`commit.gpgsign=false`) so that a
   signing prompt cannot block a save. Your global Git configuration is left
   untouched.
@@ -131,7 +131,7 @@ push or pull.
 ## Quick notes
 
 ```sh
-noteflow --fast
+cwtnote --fast
 ```
 
 This opens a small floating window with a single text area and no sidebar:
@@ -142,18 +142,18 @@ This opens a small floating window with a single text area and no sidebar:
 - Empty notes are discarded.
 
 Quick notes are written to `Inbox/YYYY-MM-DD-HHMMSS.md` inside the same vault.
-The command works whether the main window is open or not. If Noteflow is already
+The command works whether the main window is open or not. If CWTNote is already
 running, the command is forwarded to the running instance.
 
 ### Binding a global hotkey
 
-Use `noteflow --fast` as the command in your desktop's keyboard settings.
+Use `cwtnote --fast` as the command in your desktop's keyboard settings.
 
 GNOME (Settings → Keyboard → Custom Shortcuts):
 
 ```
-Name:    Noteflow quick note
-Command: noteflow --fast
+Name:    CWTNote quick note
+Command: cwtnote --fast
 ```
 
 KDE Plasma (System Settings → Shortcuts → Custom Shortcuts): add a new command
@@ -162,16 +162,16 @@ shortcut with the same command.
 Hyprland (`~/.config/hypr/hyprland.conf`):
 
 ```ini
-bind = SUPER, N, exec, noteflow --fast
+bind = SUPER, N, exec, cwtnote --fast
 ```
 
 Sway (`~/.config/sway/config`):
 
 ```
-bindsym $mod+n exec noteflow --fast
+bindsym $mod+n exec cwtnote --fast
 ```
 
-Make sure `noteflow` is in `PATH` (for example after `sudo make install`).
+Make sure `cwtnote` is in `PATH` (for example after `sudo make install`).
 
 ## Project layout
 
@@ -193,11 +193,11 @@ data/            Desktop entry and application icon
 
 ## License
 
-Noteflow is free software: you can redistribute it and/or modify it under the
+CWTNote is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
 version.
 
-Noteflow is distributed in the hope that it will be useful, but WITHOUT ANY
+CWTNote is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the `LICENSE` file for the full text.

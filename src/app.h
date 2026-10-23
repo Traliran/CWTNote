@@ -1,4 +1,4 @@
-// Noteflow - main application window and shared state.
+// CWTNote - main application window and shared state.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef NF_APP_H

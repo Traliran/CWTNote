@@ -1,4 +1,4 @@
-// Noteflow - vault access: notes, folders, links.
+// CWTNote - vault access: notes, folders, links.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef NF_VAULT_H

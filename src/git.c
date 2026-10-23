@@ -1,4 +1,4 @@
-// Noteflow - local Git history for a vault (system git binary).
+// CWTNote - local Git history for a vault (system git binary).
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "git.h"
@@ -109,8 +109,8 @@ static gboolean ensure_identity(const char *vault, char **err) {
         const char *key;
         const char *fallback;
     } const settings[] = {
-        {"user.name", "Noteflow"},
-        {"user.email", "noteflow@localhost"},
+        {"user.name", "CWTNote"},
+        {"user.email", "cwtnote@localhost"},
     };
 
     for (gsize i = 0; i < G_N_ELEMENTS(settings); i++) {

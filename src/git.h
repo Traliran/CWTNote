@@ -1,4 +1,4 @@
-// Noteflow - local Git history for a vault (system git binary).
+// CWTNote - local Git history for a vault (system git binary).
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef NF_GIT_H

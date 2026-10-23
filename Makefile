@@ -1,4 +1,4 @@
-# Noteflow - build instructions
+# CWTNote - build instructions
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 CC       ?= cc
@@ -11,7 +11,7 @@ CFLAGS   += -std=c11 -Wall -Wextra
 PKG_CFLAGS := $(shell $(PKG_CONFIG) --cflags $(PACKAGES))
 PKG_LIBS   := $(shell $(PKG_CONFIG) --libs $(PACKAGES))
 
-BIN      := noteflow
+BIN      := cwtnote
 SRC      := $(wildcard src/*.c)
 OBJ      := $(SRC:.c=.o)
 DEP      := $(OBJ:.o=.d)
@@ -33,15 +33,15 @@ src/%.o: src/%.c
 
 install: $(BIN)
 	install -Dm755 $(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
-	install -Dm644 data/org.noteflow.Noteflow.desktop \
-		$(DESTDIR)$(APPDIR)/org.noteflow.Noteflow.desktop
-	install -Dm644 data/icons/hicolor/scalable/apps/org.noteflow.Noteflow.svg \
-		$(DESTDIR)$(ICONDIR)/org.noteflow.Noteflow.svg
+	install -Dm644 data/org.cwtnote.CWTNote.desktop \
+		$(DESTDIR)$(APPDIR)/org.cwtnote.CWTNote.desktop
+	install -Dm644 data/icons/hicolor/scalable/apps/org.cwtnote.CWTNote.svg \
+		$(DESTDIR)$(ICONDIR)/org.cwtnote.CWTNote.svg
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(BIN)
-	rm -f $(DESTDIR)$(APPDIR)/org.noteflow.Noteflow.desktop
-	rm -f $(DESTDIR)$(ICONDIR)/org.noteflow.Noteflow.svg
+	rm -f $(DESTDIR)$(APPDIR)/org.cwtnote.CWTNote.desktop
+	rm -f $(DESTDIR)$(ICONDIR)/org.cwtnote.CWTNote.svg
 
 clean:
 	rm -f $(BIN) $(OBJ) $(DEP)

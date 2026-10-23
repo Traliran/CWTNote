@@ -1,4 +1,4 @@
-// Noteflow - main window, editor, sidebar, history and settings.
+// CWTNote - main window, editor, sidebar, history and settings.
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "app.h"
@@ -399,7 +399,7 @@ static void ensure_git(NfApp *app, GtkWidget *parent) {
             show_error_dialog(parent, "Git is unavailable",
                               err != NULL ? err : "Unknown error.");
         else
-            g_warning("Noteflow: %s", err != NULL ? err : "Git is unavailable.");
+            g_warning("CWTNote: %s", err != NULL ? err : "Git is unavailable.");
         g_free(err);
         return;
     }
@@ -465,12 +465,12 @@ static void update_window_title(NfApp *app) {
     if (app->window == NULL)
         return;
     if (app->active_relpath == NULL) {
-        gtk_window_set_title(GTK_WINDOW(app->window), "Noteflow");
+        gtk_window_set_title(GTK_WINDOW(app->window), "CWTNote");
         return;
     }
 
     char *title = nf_title_from_relpath(app->active_relpath);
-    char *full = g_strdup_printf("%s — Noteflow", title);
+    char *full = g_strdup_printf("%s — CWTNote", title);
     gtk_window_set_title(GTK_WINDOW(app->window), full);
     g_free(full);
     g_free(title);
@@ -1359,7 +1359,7 @@ static void confirm_delete(NfApp *app, const char *relpath, gboolean is_dir) {
     char *title = is_dir ? g_path_get_basename(relpath)
                          : nf_title_from_relpath(relpath);
     char *body = g_strdup_printf(
-        "“%s” will be moved to the trash. This cannot be undone from Noteflow.",
+        "“%s” will be moved to the trash. This cannot be undone from CWTNote.",
         title);
     confirm_action(GTK_WIDGET(app->window), is_dir ? "Delete Folder?" : "Delete Note?",
                    body, "delete", "Delete", TRUE, on_delete_confirmed, ctx);
@@ -1727,16 +1727,16 @@ static void show_settings(NfApp *app) {
 
 static void show_about(NfApp *app) {
     AdwDialog *dialog = adw_about_dialog_new();
-    adw_about_dialog_set_application_name(ADW_ABOUT_DIALOG(dialog), "Noteflow");
+    adw_about_dialog_set_application_name(ADW_ABOUT_DIALOG(dialog), "CWTNote");
     adw_about_dialog_set_application_icon(ADW_ABOUT_DIALOG(dialog),
-                                          "org.noteflow.Noteflow");
+                                          "org.cwtnote.CWTNote");
     adw_about_dialog_set_version(ADW_ABOUT_DIALOG(dialog), NF_VERSION);
     adw_about_dialog_set_developer_name(ADW_ABOUT_DIALOG(dialog), "Traliran");
     adw_about_dialog_set_comments(
         ADW_ABOUT_DIALOG(dialog),
         "Local-first Markdown notes with automatic Git history.");
     adw_about_dialog_set_website(ADW_ABOUT_DIALOG(dialog),
-                                 "https://github.com/Traliran/Noteflow");
+                                 "https://github.com/Traliran/CWTNote");
     adw_about_dialog_set_license_type(ADW_ABOUT_DIALOG(dialog),
                                       GTK_LICENSE_GPL_3_0);
     const char *developers[] = {"Traliran", NULL};
@@ -2233,7 +2233,7 @@ static GtkWidget *build_header(NfApp *app) {
 
     GMenu *application = g_menu_new();
     g_menu_append(application, "Settings", "app.settings");
-    g_menu_append(application, "About Noteflow", "app.about");
+    g_menu_append(application, "About CWTNote", "app.about");
     g_menu_append(application, "Quit", "app.quit");
     g_menu_append_section(menu, NULL, G_MENU_MODEL(application));
     g_object_unref(application);
@@ -2291,7 +2291,7 @@ static void build_main_window(NfApp *app) {
     AdwApplicationWindow *window = ADW_APPLICATION_WINDOW(
         adw_application_window_new(app->application));
     app->window = window;
-    gtk_window_set_title(GTK_WINDOW(window), "Noteflow");
+    gtk_window_set_title(GTK_WINDOW(window), "CWTNote");
     gtk_window_set_default_size(GTK_WINDOW(window), 1100, 720);
     g_signal_connect(window, "close-request", G_CALLBACK(on_close_request),
                      app);
@@ -2453,7 +2453,7 @@ static void build_setup_window(NfApp *app) {
     AdwApplicationWindow *window = ADW_APPLICATION_WINDOW(
         adw_application_window_new(app->application));
     app->setup_window = window;
-    gtk_window_set_title(GTK_WINDOW(window), "Welcome to Noteflow");
+    gtk_window_set_title(GTK_WINDOW(window), "Welcome to CWTNote");
     gtk_window_set_default_size(GTK_WINDOW(window), 640, 520);
     g_signal_connect(window, "destroy", G_CALLBACK(on_setup_destroy), app);
 
@@ -2464,7 +2464,7 @@ static void build_setup_window(NfApp *app) {
     GtkWidget *page = adw_status_page_new();
     adw_status_page_set_icon_name(ADW_STATUS_PAGE(page),
                                   "document-edit-symbolic");
-    adw_status_page_set_title(ADW_STATUS_PAGE(page), "Welcome to Noteflow");
+    adw_status_page_set_title(ADW_STATUS_PAGE(page), "Welcome to CWTNote");
     adw_status_page_set_description(
         ADW_STATUS_PAGE(page),
         "Your notes stay as plain Markdown files. Choose a folder for your "
@@ -2481,7 +2481,7 @@ static void build_setup_window(NfApp *app) {
 
     GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "~/Noteflow");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "~/CWTNote");
     gtk_widget_set_hexpand(entry, TRUE);
     g_object_set_data(G_OBJECT(window), "nf-vault-entry", entry);
     gtk_box_append(GTK_BOX(row), entry);
@@ -2495,7 +2495,7 @@ static void build_setup_window(NfApp *app) {
     if (app->setup_hint != NULL)
         initial = g_strdup(app->setup_hint);
     else
-        initial = g_build_filename(g_get_home_dir(), "Noteflow", NULL);
+        initial = g_build_filename(g_get_home_dir(), "CWTNote", NULL);
     gtk_editable_set_text(GTK_EDITABLE(entry), initial);
     g_free(initial);
 
