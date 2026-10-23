@@ -691,6 +691,25 @@ static void hide_completion(NfApp *app) {
     }
 }
 
+// Remove the completion popover from the widget tree. GtkPopover owns itself
+// through its parent, but containers warn (and GtkTextView even hangs) if they
+// are finalized while a popover is still attached. Call this before closing or
+// destroying the window.
+static void destroy_completion_popover(NfApp *app) {
+    if (app->completion_popover == NULL)
+        return;
+
+    if (app->completion_visible) {
+        gtk_popover_popdown(app->completion_popover);
+        app->completion_visible = FALSE;
+    }
+    if (gtk_widget_get_parent(GTK_WIDGET(app->completion_popover)) != NULL)
+        gtk_widget_unparent(GTK_WIDGET(app->completion_popover));
+
+    app->completion_popover = NULL;
+    app->completion_list = NULL;
+}
+
 static void on_completion_row_activated(GtkListBox *list, GtkListBoxRow *row,
                                         gpointer user_data) {
     (void)list;
@@ -808,8 +827,22 @@ static void completion_update(NfApp *app) {
     gtk_text_view_buffer_to_window_coords(
         GTK_TEXT_VIEW(app->source_view), GTK_TEXT_WINDOW_WIDGET, rect.x,
         rect.y + rect.height, &x, &y);
-    GdkRectangle point = {x, y, 1, 1};
-    gtk_popover_set_pointing_to(app->completion_popover, &point);
+
+    // The popover is parented to the scrolled window, not to the text view:
+    // GtkTextView only accepts its own internal children and loops forever
+    // while disposing of a foreign child. Translate the cursor position into
+    // the popover parent's coordinate system.
+    GtkWidget *anchor =
+        gtk_widget_get_parent(GTK_WIDGET(app->completion_popover));
+    if (anchor != NULL) {
+        graphene_point_t from = {(float)x, (float)y};
+        graphene_point_t to;
+        if (gtk_widget_compute_point(GTK_WIDGET(app->source_view), anchor,
+                                     &from, &to)) {
+            GdkRectangle point = {(int)to.x, (int)to.y, 1, 1};
+            gtk_popover_set_pointing_to(app->completion_popover, &point);
+        }
+    }
 
     if (!app->completion_visible) {
         gtk_popover_popup(app->completion_popover);
@@ -1809,6 +1842,7 @@ static void action_quit(GSimpleAction *action, GVariant *parameter,
     NfApp *app = user_data;
     if (!save_active(app, TRUE))
         return;
+    destroy_completion_popover(app);
     g_application_quit(G_APPLICATION(app->application));
 }
 
@@ -1906,7 +1940,11 @@ static void setup_accels(NfApp *app) {
 static gboolean on_close_request(GtkWindow *window, gpointer user_data) {
     (void)window;
     NfApp *app = user_data;
-    return save_active(app, TRUE) ? FALSE : TRUE;
+    if (!save_active(app, TRUE))
+        return TRUE;
+
+    destroy_completion_popover(app);
+    return FALSE;
 }
 
 static void on_main_destroy(GtkWindow *window, gpointer user_data) {
@@ -1915,6 +1953,10 @@ static void on_main_destroy(GtkWindow *window, gpointer user_data) {
         return;
 
     cancel_pending_save(app);
+
+    // The completion popover is detached in close-request/quit before the
+    // widget tree is disposed. This signal runs during disposal, so only the
+    // raw pointers are cleared below.
     app->window = NULL;
     app->split_view = NULL;
     app->toast_overlay = NULL;
@@ -2057,7 +2099,10 @@ static GtkWidget *build_editor_stack(NfApp *app) {
     gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(completion_scroll),
                                   GTK_WIDGET(app->completion_list));
     gtk_popover_set_child(app->completion_popover, completion_scroll);
-    gtk_widget_set_parent(GTK_WIDGET(app->completion_popover), GTK_WIDGET(view));
+    // Parent the popover to the scrolled window. GtkTextView rejects foreign
+    // children and hangs in gtk_text_view_dispose() if a popover is attached
+    // to it directly.
+    gtk_widget_set_parent(GTK_WIDGET(app->completion_popover), source_scroll);
     g_signal_connect(app->completion_list, "row-activated",
                      G_CALLBACK(on_completion_row_activated), app);
 
