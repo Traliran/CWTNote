@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Noteflow
+GenericName=Markdown Notes
+Comment=Local-first Markdown notes with automatic Git history
+Exec=noteflow
+Icon=org.noteflow.Noteflow
+Terminal=false
+Categories=Utility;TextEditor;
+Keywords=notes;markdown;wiki;git;vault;
+StartupNotify=true
+StartupWMClass=org.noteflow.Noteflow
