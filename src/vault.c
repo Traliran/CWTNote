@@ -320,6 +320,12 @@ static gint link_compare(gconstpointer a, gconstpointer b) {
     return g_utf8_collate(left->title, right->title);
 }
 
+static void strip_md_suffix(char *name) {
+    gsize len = strlen(name);
+    if (len >= 3 && g_ascii_strcasecmp(name + len - 3, ".md") == 0)
+        name[len - 3] = '\0';
+}
+
 GList *nf_vault_backlinks(const NfVault *vault, const char *title,
                           const char *exclude_relpath) {
     char *title_folded = g_utf8_casefold(title, -1);
@@ -344,12 +350,6 @@ GList *nf_vault_backlinks(const NfVault *vault, const char *title,
         gboolean found = FALSE;
         const char *cursor = content;
         while ((cursor = strstr(cursor, "[[")) != NULL) {
-            // Skip embeds: ![[image.png]]
-            if (cursor > content && cursor[-1] == '!') {
-                cursor += 2;
-                continue;
-            }
-
             const char *start = cursor + 2;
             const char *end = strstr(start, "]]");
             if (end == NULL)
@@ -363,8 +363,9 @@ GList *nf_vault_backlinks(const NfVault *vault, const char *title,
             g_strstrip(target);
 
             if (target[0] != '\0') {
-                const char *base = strrchr(target, '/');
+                char *base = strrchr(target, '/');
                 base = base != NULL ? base + 1 : target;
+                strip_md_suffix(base);
                 char *base_folded = g_utf8_casefold(base, -1);
                 if (strcmp(base_folded, title_folded) == 0)
                     found = TRUE;
@@ -394,6 +395,95 @@ GList *nf_vault_backlinks(const NfVault *vault, const char *title,
 
     links = g_list_sort(links, link_compare);
     return links;
+}
+
+static gboolean has_md_suffix(const char *name) {
+    gsize len = strlen(name);
+    return len >= 3 && g_ascii_strcasecmp(name + len - 3, ".md") == 0;
+}
+
+static char *relative_to_root(const char *root, const char *path) {
+    gsize root_len = strlen(root);
+
+    if (strncmp(path, root, root_len) != 0)
+        return NULL;
+    if (path[root_len] == '\0')
+        return g_strdup("");
+    if (path[root_len] != '/')
+        return NULL;
+    return g_strdup(path + root_len + 1);
+}
+
+static char *existing_regular_file(const NfVault *vault, const char *base_rel,
+                                   const char *target) {
+    char *joined = nf_relpath_join(base_rel, target);
+    char *abs = nf_vault_abs(vault, joined);
+    char *canonical = g_canonicalize_filename(abs, NULL);
+    g_free(abs);
+    g_free(joined);
+
+    char *relpath = relative_to_root(vault->root, canonical);
+    g_free(canonical);
+    if (relpath == NULL || relpath[0] == '\0') {
+        g_free(relpath);
+        return NULL;
+    }
+
+    char *full = nf_vault_abs(vault, relpath);
+    GStatBuf stat_buf;
+    // Do not follow symlinks; the vault listing uses the same rule.
+    gboolean ok = g_lstat(full, &stat_buf) == 0 && S_ISREG(stat_buf.st_mode);
+    g_free(full);
+
+    if (!ok) {
+        g_free(relpath);
+        return NULL;
+    }
+    return relpath;
+}
+
+static char *find_file_recursive(const NfVault *vault, const char *dir_relpath,
+                                 const char *name_folded) {
+    char *dir_abs = nf_vault_abs(vault, dir_relpath);
+    GDir *dir = g_dir_open(dir_abs, 0, NULL);
+    if (dir == NULL) {
+        g_free(dir_abs);
+        return NULL;
+    }
+
+    char *result = NULL;
+    const char *name;
+    while (result == NULL && (name = g_dir_read_name(dir)) != NULL) {
+        if (name[0] == '.')
+            continue;
+
+        char *child_rel = nf_relpath_join(dir_relpath, name);
+        char *child_abs = nf_vault_abs(vault, child_rel);
+        GStatBuf stat_buf;
+        if (g_lstat(child_abs, &stat_buf) != 0) {
+            g_free(child_abs);
+            g_free(child_rel);
+            continue;
+        }
+
+        if (S_ISLNK(stat_buf.st_mode)) {
+            // Ignore symlinks, matching the sidebar traversal.
+        } else if (S_ISDIR(stat_buf.st_mode)) {
+            result = find_file_recursive(vault, child_rel, name_folded);
+        } else if (S_ISREG(stat_buf.st_mode)) {
+            char *folded = g_utf8_casefold(name, -1);
+            if (strcmp(folded, name_folded) == 0)
+                result = g_strdup(child_rel);
+            g_free(folded);
+        }
+
+        g_free(child_abs);
+        g_free(child_rel);
+    }
+
+    g_dir_close(dir);
+    g_free(dir_abs);
+    return result;
 }
 
 char *nf_vault_resolve_link(const NfVault *vault, const char *target) {
@@ -445,6 +535,57 @@ char *nf_vault_resolve_link(const NfVault *vault, const char *target) {
     nf_entry_list_free(notes);
     g_free(base_folded);
     g_free(target_folded);
+    g_free(copy);
+    return result;
+}
+
+char *nf_vault_resolve_embed(const NfVault *vault, const char *target,
+                             const char *source_relpath) {
+    if (vault == NULL || target == NULL)
+        return NULL;
+
+    char *copy = g_strdup(target);
+    char *embed = g_strstrip(copy);
+    char *bar = strchr(embed, '|');
+    if (bar != NULL)
+        *bar = '\0';
+    char *hash = strchr(embed, '#');
+    if (hash != NULL)
+        *hash = '\0';
+    g_strstrip(embed);
+
+    if (embed[0] == '\0' || g_path_is_absolute(embed) ||
+        embed[0] == '\\') {
+        g_free(copy);
+        return NULL;
+    }
+
+    char *source_dir =
+        source_relpath != NULL ? nf_parent_relpath(source_relpath)
+                               : g_strdup("");
+    char *result = existing_regular_file(vault, source_dir, embed);
+    if (result == NULL)
+        result = existing_regular_file(vault, "", embed);
+    g_free(source_dir);
+
+    const char *base = strrchr(embed, '/');
+    base = base != NULL ? base + 1 : embed;
+
+    // Notes are addressed by title, with or without the .md extension.
+    if (result == NULL && (has_md_suffix(base) || strchr(base, '.') == NULL)) {
+        char *note_target = g_strdup(embed);
+        strip_md_suffix(note_target);
+        result = nf_vault_resolve_link(vault, note_target);
+        g_free(note_target);
+    }
+
+    // Images and other attachments can live anywhere in the vault.
+    if (result == NULL && !has_md_suffix(base)) {
+        char *base_folded = g_utf8_casefold(base, -1);
+        result = find_file_recursive(vault, "", base_folded);
+        g_free(base_folded);
+    }
+
     g_free(copy);
     return result;
 }

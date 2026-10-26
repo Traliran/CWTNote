@@ -14,7 +14,8 @@ network connection is involved.
 - Live Markdown preview with headings, lists, quotes, code blocks, links and
   emphasis.
 - `[[Wikilinks]]` with autocomplete while typing.
-- Backlinks panel showing notes that link to the current note.
+- Image and note embeds with `![[image.png]]` and `![[note.md]]`.
+- Backlinks panel showing notes that link to or embed the current note.
 - Search by note names and paths.
 - Automatic local Git commit after every save, with per-note version history and
   one-click restore.
@@ -101,6 +102,10 @@ initialised inside the vault the first time it is opened.
 - Type `[[` in a note to open the wikilink autocomplete. Use
   `[[Note name]]` or `[[Note name|display text]]`.
 - Click a wikilink in the preview to open the target note.
+- Put `![[image.png]]` on its own line to embed an image. Images are looked up
+  next to the current note first and then anywhere in the vault.
+- Put `![[Note.md]]` on its own line to embed another note. Its content is
+  rendered with a quote-like left indent.
 - Use **Ctrl+S** to save immediately. Changes are also saved automatically
   shortly after you stop typing.
 - Toggle the preview with the eye button in the header.

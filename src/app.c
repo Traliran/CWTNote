@@ -135,7 +135,9 @@ static void ensure_css(void) {
         ".nf-code { font-family: monospace; background-color: alpha(currentColor, 0.08);"
         " border-radius: 6px; padding: 10px; }\n"
         ".nf-quote { opacity: 0.8; border-left: 3px solid alpha(currentColor, 0.25);"
-        " padding-left: 10px; }\n";
+        " padding-left: 10px; }\n"
+        ".nf-embed { border-left: 3px solid alpha(currentColor, 0.25);"
+        " padding-left: 10px; margin-left: 2px; }\n";
 
     GtkCssProvider *provider = gtk_css_provider_new();
     gtk_css_provider_load_from_string(provider, css);
@@ -616,13 +618,22 @@ static gboolean on_external_link(const char *uri, gpointer user_data) {
     return TRUE;
 }
 
+static char *on_embed(const char *target, const char *source_relpath,
+                      gpointer user_data) {
+    NfApp *app = user_data;
+    if (app->vault_handle == NULL)
+        return NULL;
+    return nf_vault_resolve_embed(app->vault_handle, target, source_relpath);
+}
+
 static void update_preview(NfApp *app) {
     if (app->preview_scroll == NULL)
         return;
 
     char *text = buffer_text(app);
-    GtkWidget *view =
-        nf_markdown_render(text, on_wiki_link, on_external_link, app);
+    GtkWidget *view = nf_markdown_render(
+        text, app->vault, app->active_relpath, on_wiki_link, on_external_link,
+        on_embed, app);
     gtk_scrolled_window_set_child(app->preview_scroll, view);
     g_free(text);
 }

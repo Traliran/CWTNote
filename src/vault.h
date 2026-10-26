@@ -51,12 +51,18 @@ gboolean nf_vault_delete(NfVault *vault, const char *relpath, char **err);
 // Create Inbox/YYYY-MM-DD-HHMMSS.md and return its relative path.
 char *nf_vault_quick_note(NfVault *vault, const char *text, char **err);
 
-// Notes containing a [[wikilink]] to title, excluding exclude_relpath.
+// Notes containing a [[wikilink]] or ![[embed]] to title, excluding
+// exclude_relpath.
 GList *nf_vault_backlinks(const NfVault *vault, const char *title,
                           const char *exclude_relpath);
 
 // Resolve a wikilink target to a note relative path, or NULL.
 char *nf_vault_resolve_link(const NfVault *vault, const char *target);
+
+// Resolve an embedded file (![[target]]) to a vault-relative path, or NULL.
+// Searches next to source_relpath first, then anywhere in the vault.
+char *nf_vault_resolve_embed(const NfVault *vault, const char *target,
+                             const char *source_relpath);
 
 void nf_entry_free(NfEntry *entry);
 void nf_entry_list_free(GList *entries);

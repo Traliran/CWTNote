@@ -5,16 +5,163 @@
 
 #include <string.h>
 
+#define MAX_EMBED_DEPTH 5
+
 typedef struct {
+    const char *vault_root;
     NfWikiLinkFunc wiki_cb;
     NfUriFunc uri_cb;
+    NfEmbedFunc embed_cb;
+    GHashTable *embedding;
     gpointer user_data;
 } MdCtx;
+
+static GtkWidget *render_text(MdCtx *ctx, const char *text,
+                              const char *source_relpath, guint depth,
+                              gboolean embedded);
 
 static void append_escaped_n(GString *out, const char *text, gsize len) {
     char *escaped = g_markup_escape_text(text, (gssize)len);
     g_string_append(out, escaped);
     g_free(escaped);
+}
+
+static gboolean has_md_suffix(const char *name) {
+    gsize len = strlen(name);
+    return len >= 3 && g_ascii_strcasecmp(name + len - 3, ".md") == 0;
+}
+
+static gboolean embed_line_target(const char *line, char **target,
+                                  char **display) {
+    *target = NULL;
+    *display = NULL;
+
+    if (!g_str_has_prefix(line, "![["))
+        return FALSE;
+
+    const char *close = strstr(line + 3, "]]");
+    if (close == NULL || close[2] != '\0')
+        return FALSE;
+
+    char *inner = g_strndup(line + 3, (gsize)(close - (line + 3)));
+    char *bar = strchr(inner, '|');
+    char *target_part = inner;
+    char *display_part = NULL;
+    if (bar != NULL) {
+        *bar = '\0';
+        display_part = bar + 1;
+    }
+
+    char *hash = strchr(target_part, '#');
+    if (hash != NULL)
+        *hash = '\0';
+
+    g_strstrip(target_part);
+    if (target_part[0] == '\0') {
+        g_free(inner);
+        return FALSE;
+    }
+
+    *target = g_strdup(target_part);
+    if (display_part != NULL) {
+        g_strstrip(display_part);
+        if (display_part[0] != '\0')
+            *display = g_strdup(display_part);
+    }
+
+    g_free(inner);
+    return TRUE;
+}
+
+static gboolean is_embed_line(const char *line) {
+    char *target = NULL;
+    char *display = NULL;
+    gboolean result = embed_line_target(line, &target, &display);
+    g_free(target);
+    g_free(display);
+    return result;
+}
+
+static GtkWidget *make_placeholder(const char *text) {
+    char *markup = g_markup_printf_escaped("<tt>%s</tt>", text);
+    GtkWidget *label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(label), markup);
+    gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+    gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+    gtk_widget_add_css_class(label, "dim-label");
+    g_free(markup);
+    return label;
+}
+
+static GtkWidget *make_embed_image(const char *relpath, const char *display,
+                                   const char *target, MdCtx *ctx) {
+    char *path = g_build_filename(ctx->vault_root, relpath, NULL);
+    GError *err = NULL;
+    GdkTexture *texture = gdk_texture_new_from_filename(path, &err);
+    g_free(path);
+
+    if (texture == NULL) {
+        g_clear_error(&err);
+        char *text = g_strdup_printf("Could not load image: %s", target);
+        GtkWidget *placeholder = make_placeholder(text);
+        g_free(text);
+        return placeholder;
+    }
+
+    GtkWidget *picture =
+        gtk_picture_new_for_paintable(GDK_PAINTABLE(texture));
+    g_object_unref(texture);
+    gtk_picture_set_content_fit(GTK_PICTURE(picture),
+                                GTK_CONTENT_FIT_SCALE_DOWN);
+    gtk_picture_set_alternative_text(GTK_PICTURE(picture),
+                                     display != NULL ? display : target);
+    gtk_widget_set_hexpand(picture, TRUE);
+    gtk_widget_set_halign(picture, GTK_ALIGN_FILL);
+    return picture;
+}
+
+static GtkWidget *make_embed_note(const char *relpath, const char *target,
+                                  MdCtx *ctx, guint depth) {
+    GtkWidget *wrapper = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_add_css_class(wrapper, "nf-embed");
+
+    if (depth >= MAX_EMBED_DEPTH ||
+        g_hash_table_contains(ctx->embedding, relpath)) {
+        char *text = g_strdup_printf("Skipped recursive embed: %s", target);
+        GtkWidget *placeholder = make_placeholder(text);
+        gtk_box_append(GTK_BOX(wrapper), placeholder);
+        g_free(text);
+        return wrapper;
+    }
+
+    char *path = g_build_filename(ctx->vault_root, relpath, NULL);
+    char *content = NULL;
+    gboolean ok = g_file_get_contents(path, &content, NULL, NULL);
+    g_free(path);
+
+    if (!ok) {
+        char *text = g_strdup_printf("Note not found: %s", target);
+        GtkWidget *placeholder = make_placeholder(text);
+        gtk_box_append(GTK_BOX(wrapper), placeholder);
+        g_free(text);
+        return wrapper;
+    }
+
+    char *valid = g_utf8_make_valid(content, -1);
+    g_free(content);
+
+    g_hash_table_add(ctx->embedding, g_strdup(relpath));
+    GtkWidget *content_box = render_text(ctx, valid, relpath, depth + 1, TRUE);
+    g_hash_table_remove(ctx->embedding, relpath);
+    g_free(valid);
+
+    gtk_box_append(GTK_BOX(wrapper), content_box);
+    return wrapper;
+}
+
+static void md_ctx_free(MdCtx *ctx) {
+    g_hash_table_destroy(ctx->embedding);
+    g_free(ctx);
 }
 
 static char *inline_markup(const char *text) {
@@ -217,20 +364,18 @@ static gboolean list_marker(const char *line, gsize *marker_len) {
     return FALSE;
 }
 
-GtkWidget *nf_markdown_render(const char *text, NfWikiLinkFunc wiki_cb,
-                              NfUriFunc uri_cb, gpointer user_data) {
-    MdCtx *ctx = g_new0(MdCtx, 1);
-    ctx->wiki_cb = wiki_cb;
-    ctx->uri_cb = uri_cb;
-    ctx->user_data = user_data;
-
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_widget_set_margin_start(box, 18);
-    gtk_widget_set_margin_end(box, 18);
-    gtk_widget_set_margin_top(box, 18);
-    gtk_widget_set_margin_bottom(box, 18);
+static GtkWidget *render_text(MdCtx *ctx, const char *text,
+                              const char *source_relpath, guint depth,
+                              gboolean embedded) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL,
+                                 embedded ? 4 : 6);
+    if (!embedded) {
+        gtk_widget_set_margin_start(box, 18);
+        gtk_widget_set_margin_end(box, 18);
+        gtk_widget_set_margin_top(box, 18);
+        gtk_widget_set_margin_bottom(box, 18);
+    }
     gtk_widget_set_valign(box, GTK_ALIGN_START);
-    g_object_set_data_full(G_OBJECT(box), "nf-md-ctx", ctx, g_free);
 
     if (text == NULL)
         return box;
@@ -244,6 +389,41 @@ GtkWidget *nf_markdown_render(const char *text, NfWikiLinkFunc wiki_cb,
         g_strstrip(trimmed);
 
         if (trimmed[0] == '\0') {
+            g_free(trimmed);
+            i++;
+            continue;
+        }
+
+        // Embedded file: ![[image.png]] or ![[note.md]] on its own line.
+        if (ctx->embed_cb != NULL && is_embed_line(trimmed)) {
+            char *target = NULL;
+            char *display = NULL;
+            embed_line_target(trimmed, &target, &display);
+            char *relpath =
+                target != NULL
+                    ? ctx->embed_cb(target, source_relpath, ctx->user_data)
+                    : NULL;
+
+            if (relpath == NULL) {
+                char *text = g_strdup_printf("Embedded file not found: %s",
+                                             target != NULL ? target
+                                                            : "unknown");
+                GtkWidget *placeholder = make_placeholder(text);
+                gtk_box_append(GTK_BOX(box), placeholder);
+                g_free(text);
+            } else if (has_md_suffix(relpath)) {
+                GtkWidget *embed =
+                    make_embed_note(relpath, target, ctx, depth);
+                gtk_box_append(GTK_BOX(box), embed);
+            } else {
+                GtkWidget *image =
+                    make_embed_image(relpath, display, target, ctx);
+                gtk_box_append(GTK_BOX(box), image);
+            }
+
+            g_free(relpath);
+            g_free(display);
+            g_free(target);
             g_free(trimmed);
             i++;
             continue;
@@ -356,7 +536,8 @@ GtkWidget *nf_markdown_render(const char *text, NfWikiLinkFunc wiki_cb,
             if (check[0] == '\0' || heading_level(lines[i]) > 0 ||
                 check[0] == '>' || is_rule(check) ||
                 g_str_has_prefix(check, "```") ||
-                g_str_has_prefix(check, "~~~") || list_marker(check, &marker_len)) {
+                g_str_has_prefix(check, "~~~") || is_embed_line(check) ||
+                list_marker(check, &marker_len)) {
                 g_free(check);
                 break;
             }
@@ -378,5 +559,24 @@ GtkWidget *nf_markdown_render(const char *text, NfWikiLinkFunc wiki_cb,
     }
 
     g_strfreev(lines);
+    return box;
+}
+
+GtkWidget *nf_markdown_render(const char *text, const char *vault_root,
+                              const char *source_relpath,
+                              NfWikiLinkFunc wiki_cb, NfUriFunc uri_cb,
+                              NfEmbedFunc embed_cb, gpointer user_data) {
+    MdCtx *ctx = g_new0(MdCtx, 1);
+    ctx->vault_root = vault_root != NULL ? vault_root : "";
+    ctx->wiki_cb = wiki_cb;
+    ctx->uri_cb = uri_cb;
+    ctx->embed_cb = embed_cb;
+    ctx->embedding = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    ctx->user_data = user_data;
+
+    GtkWidget *box =
+        render_text(ctx, text, source_relpath, 0, FALSE);
+    g_object_set_data_full(G_OBJECT(box), "nf-md-ctx", ctx,
+                           (GDestroyNotify)md_ctx_free);
     return box;
 }
