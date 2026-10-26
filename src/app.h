@@ -9,7 +9,7 @@
 
 #include "vault.h"
 
-#define NF_VERSION "1.0.0"
+#define NF_VERSION "1.1.0"
 
 typedef struct _NfApp NfApp;
 
