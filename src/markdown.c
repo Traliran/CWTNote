@@ -416,9 +416,9 @@ static gchar **split_cells(const char *line, gsize *len_out) {
     return cells;
 }
 
-// Column alignment from a delimiter cell: ':---:' is centered, '---:' is right,
-// anything else is left aligned.
-static GtkAlign table_cell_align(const char *cell) {
+// Horizontal text alignment from a delimiter cell: '---' is left, ':---:' is
+// centered and '---:' is right aligned.
+static float table_cell_align(const char *cell) {
     gboolean left_colon = FALSE;
     gboolean right_colon = FALSE;
     gboolean seen_dash = FALSE;
@@ -434,22 +434,23 @@ static GtkAlign table_cell_align(const char *cell) {
         }
     }
     if (left_colon && right_colon) {
-        return GTK_ALIGN_CENTER;
+        return 0.5f;
     }
     if (right_colon) {
-        return GTK_ALIGN_END;
+        return 1.0f;
     }
-    return GTK_ALIGN_START;
+    return 0.0f;
 }
 
-static GtkWidget *make_table_cell(MdCtx *ctx, const char *text, GtkAlign align) {
+static GtkWidget *make_table_cell(MdCtx *ctx, const char *text, float xalign) {
     char *markup = inline_markup(text);
     GtkWidget *label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(label), markup);
     gtk_label_set_wrap(GTK_LABEL(label), TRUE);
     gtk_label_set_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
-    gtk_widget_set_halign(label, align);
-    gtk_widget_set_valign(label, GTK_ALIGN_START);
+    gtk_label_set_xalign(GTK_LABEL(label), xalign);
+    gtk_widget_set_hexpand(label, TRUE);
+    gtk_widget_add_css_class(label, "nf-table-cell");
     g_signal_connect(label, "activate-link", G_CALLBACK(on_activate_link), ctx);
     g_free(markup);
     return label;
@@ -472,8 +473,9 @@ static GtkWidget *make_table(MdCtx *ctx, char **lines, guint start, guint end) {
         g_free(cells);
     }
 
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    GtkAlign *aligns = g_new0(GtkAlign, columns > 0 ? columns : 1);
+    GtkWidget *grid = gtk_grid_new();
+    gtk_widget_add_css_class(grid, "nf-table");
+    float *aligns = g_new0(float, columns > 0 ? columns : 1);
 
     // The delimiter row defines the column alignment.
     gsize delim_len = 0;
@@ -487,16 +489,33 @@ static GtkWidget *make_table(MdCtx *ctx, char **lines, guint start, guint end) {
     }
     g_free(delim_cells);
 
+    GtkWidget *first_in_previous_row = NULL;
     for (guint i = start; i < end; i++) {
         gsize len = 0;
         gchar **cells = split_cells(lines[i], &len);
         if (i != start + 1) {
-            GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+            GtkWidget *first_in_row = NULL;
+            GtkWidget *previous = NULL;
             for (guint c = 0; c < columns; c++) {
                 const char *text = c < len ? cells[c] : "";
-                gtk_box_append(GTK_BOX(row_box), make_table_cell(ctx, text, aligns[c]));
+                GtkWidget *label = make_table_cell(ctx, text, aligns[c]);
+                if (previous != NULL) {
+                    gtk_grid_attach_next_to(GTK_GRID(grid), label, previous,
+                                            GTK_POS_RIGHT, 1, 1);
+                } else if (first_in_previous_row != NULL) {
+                    gtk_grid_attach_next_to(GTK_GRID(grid), label,
+                                            first_in_previous_row, GTK_POS_BOTTOM,
+                                            1, 1);
+                } else {
+                    gtk_grid_attach_next_to(GTK_GRID(grid), label, NULL,
+                                            GTK_POS_RIGHT, 1, 1);
+                }
+                if (first_in_row == NULL) {
+                    first_in_row = label;
+                }
+                previous = label;
             }
-            gtk_box_append(GTK_BOX(box), row_box);
+            first_in_previous_row = first_in_row;
         }
         for (gsize c = 0; c < len; c++) {
             g_free(cells[c]);
@@ -505,7 +524,7 @@ static GtkWidget *make_table(MdCtx *ctx, char **lines, guint start, guint end) {
     }
 
     g_free(aligns);
-    return box;
+    return grid;
 }
 
 static GtkWidget *render_text(MdCtx *ctx, const char *text,
@@ -679,9 +698,7 @@ static GtkWidget *render_text(MdCtx *ctx, const char *text,
             }
 
             gtk_box_append(GTK_BOX(box), make_table(ctx, lines, i, end));
-            // The while loop increments i after every iteration, so step back
-            // to let it land on the first line after the table.
-            i = end - 1;
+            i = end;
             continue;
         }
 

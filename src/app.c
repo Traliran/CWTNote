@@ -137,7 +137,10 @@ static void ensure_css(void) {
         ".nf-quote { opacity: 0.8; border-left: 3px solid alpha(currentColor, 0.25);"
         " padding-left: 10px; }\n"
         ".nf-embed { border-left: 3px solid alpha(currentColor, 0.25);"
-        " padding-left: 10px; margin-left: 2px; }\n";
+        " padding-left: 10px; margin-left: 2px; }\n"
+        ".nf-table { border: 1px solid alpha(currentColor, 0.3); }\n"
+        ".nf-table-cell { border: 1px solid alpha(currentColor, 0.3);"
+        " padding: 4px 8px; }\n";
 
     GtkCssProvider *provider = gtk_css_provider_new();
     gtk_css_provider_load_from_string(provider, css);
