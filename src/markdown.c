@@ -364,6 +364,150 @@ static gboolean list_marker(const char *line, gsize *marker_len) {
     return FALSE;
 }
 
+// Delimiter row of a Markdown table, for example "| --- | ---: |".
+static gboolean is_table_delimiter(const char *line) {
+    gboolean saw_dash = FALSE;
+    for (const char *p = line; *p != '\0'; p++) {
+        if (*p == '-' || *p == ':') {
+            saw_dash = TRUE;
+        } else if (*p != '|' && !g_ascii_isspace(*p)) {
+            return FALSE;
+        }
+    }
+    return saw_dash;
+}
+
+// Split a table row into stripped cell strings on '|'. Leading and trailing
+// empty cells (from optional outer pipes) are dropped. Returns a NULL-terminated
+// array of freshly allocated strings; the caller frees the strings and the
+// array.
+static gchar **split_cells(const char *line, gsize *len_out) {
+    gsize capacity = 4;
+    gsize n = 0;
+    char **cells = g_new0(char *, capacity);
+    const char *start = line;
+
+    for (const char *p = line;; p++) {
+        if (*p == '|' || *p == '\0') {
+            char *cell = g_strndup(start, (gsize)(p - start));
+            g_strstrip(cell);
+            if (cell[0] != '\0' || n > 0) {
+                if (n == capacity) {
+                    capacity *= 2;
+                    cells = g_realloc(cells, capacity * sizeof(char *));
+                }
+                cells[n++] = cell;
+            } else {
+                g_free(cell);
+            }
+            if (*p == '\0') {
+                break;
+            }
+            start = p + 1;
+        }
+    }
+
+    while (n > 0 && cells[n - 1][0] == '\0') {
+        g_free(cells[n - 1]);
+        n--;
+    }
+
+    *len_out = n;
+    return cells;
+}
+
+// Column alignment from a delimiter cell: ':---:' is centered, '---:' is right,
+// anything else is left aligned.
+static GtkAlign table_cell_align(const char *cell) {
+    gboolean left_colon = FALSE;
+    gboolean right_colon = FALSE;
+    gboolean seen_dash = FALSE;
+    for (const char *p = cell; *p != '\0'; p++) {
+        if (*p == '-') {
+            seen_dash = TRUE;
+        } else if (*p == ':') {
+            if (seen_dash) {
+                right_colon = TRUE;
+            } else {
+                left_colon = TRUE;
+            }
+        }
+    }
+    if (left_colon && right_colon) {
+        return GTK_ALIGN_CENTER;
+    }
+    if (right_colon) {
+        return GTK_ALIGN_END;
+    }
+    return GTK_ALIGN_START;
+}
+
+static GtkWidget *make_table_cell(MdCtx *ctx, const char *text, GtkAlign align) {
+    char *markup = inline_markup(text);
+    GtkWidget *label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(label), markup);
+    gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+    gtk_label_set_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
+    gtk_widget_set_halign(label, align);
+    gtk_widget_set_valign(label, GTK_ALIGN_START);
+    g_signal_connect(label, "activate-link", G_CALLBACK(on_activate_link), ctx);
+    g_free(markup);
+    return label;
+}
+
+// Build the widget tree of a table block. Lines[start..end) hold the header
+// row first, the delimiter row second and the body rows after that.
+static GtkWidget *make_table(MdCtx *ctx, char **lines, guint start, guint end) {
+    guint columns = 0;
+
+    for (guint i = start; i < end; i++) {
+        gsize len = 0;
+        gchar **cells = split_cells(lines[i], &len);
+        if ((guint)len > columns) {
+            columns = (guint)len;
+        }
+        for (gsize c = 0; c < len; c++) {
+            g_free(cells[c]);
+        }
+        g_free(cells);
+    }
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkAlign *aligns = g_new0(GtkAlign, columns > 0 ? columns : 1);
+
+    // The delimiter row defines the column alignment.
+    gsize delim_len = 0;
+    gchar **delim_cells = split_cells(lines[start + 1], &delim_len);
+    for (guint c = 0; c < columns; c++) {
+        const char *cell_text = c < delim_len ? delim_cells[c] : "";
+        aligns[c] = table_cell_align(cell_text);
+    }
+    for (gsize c = 0; c < delim_len; c++) {
+        g_free(delim_cells[c]);
+    }
+    g_free(delim_cells);
+
+    for (guint i = start; i < end; i++) {
+        gsize len = 0;
+        gchar **cells = split_cells(lines[i], &len);
+        if (i != start + 1) {
+            GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+            for (guint c = 0; c < columns; c++) {
+                const char *text = c < len ? cells[c] : "";
+                gtk_box_append(GTK_BOX(row_box), make_table_cell(ctx, text, aligns[c]));
+            }
+            gtk_box_append(GTK_BOX(box), row_box);
+        }
+        for (gsize c = 0; c < len; c++) {
+            g_free(cells[c]);
+        }
+        g_free(cells);
+    }
+
+    g_free(aligns);
+    return box;
+}
+
 static GtkWidget *render_text(MdCtx *ctx, const char *text,
                               const char *source_relpath, guint depth,
                               gboolean embedded) {
@@ -523,6 +667,21 @@ static GtkWidget *render_text(MdCtx *ctx, const char *text,
             g_free(markup);
             g_free(trimmed);
             i++;
+            continue;
+        }
+
+        // Table: a pipe row followed by a delimiter row.
+        if (strstr(trimmed, "|") != NULL && (guint)(i + 1) < count &&
+            is_table_delimiter(lines[i + 1])) {
+            guint end = i;
+            while (end < count && strstr(lines[end], "|") != NULL) {
+                end++;
+            }
+
+            gtk_box_append(GTK_BOX(box), make_table(ctx, lines, i, end));
+            // The while loop increments i after every iteration, so step back
+            // to let it land on the first line after the table.
+            i = end - 1;
             continue;
         }
 
