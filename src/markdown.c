@@ -1,5 +1,5 @@
 // CWTNote - small Markdown renderer for the preview pane.
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
 
 #include "markdown.h"
 

@@ -1,5 +1,5 @@
 // CWTNote - small helpers for paths, config and files.
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
 
 #ifndef NF_UTIL_H
 #define NF_UTIL_H

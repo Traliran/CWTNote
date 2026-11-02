@@ -1,5 +1,5 @@
 // CWTNote - application entry point.
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
 
 #include "app.h"
 

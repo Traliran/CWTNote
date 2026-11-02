@@ -1,5 +1,7 @@
 // CWTNote - main application window and shared state.
-// SPDX-License-Identifier: GPL-3.0-or-later
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
+ */
 
 #ifndef NF_APP_H
 #define NF_APP_H
@@ -9,7 +11,7 @@
 
 #include "vault.h"
 
-#define NF_VERSION "1.1.0"
+#define NF_VERSION "1.2.1"
 
 typedef struct _NfApp NfApp;
 

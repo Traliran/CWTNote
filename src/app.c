@@ -1,5 +1,7 @@
 // CWTNote - main window, editor, sidebar, history and settings.
-// SPDX-License-Identifier: GPL-3.0-or-later
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
+ */
 
 #include "app.h"
 #include "git.h"

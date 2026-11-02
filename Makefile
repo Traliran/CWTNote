@@ -1,5 +1,5 @@
 # CWTNote - build instructions
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
 
 CC       ?= cc
 PKG_CONFIG ?= pkg-config

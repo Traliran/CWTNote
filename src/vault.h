@@ -1,6 +1,7 @@
 // CWTNote - vault access: notes, folders, links.
-// SPDX-License-Identifier: GPL-3.0-or-later
-
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
+ */
 #ifndef NF_VAULT_H
 #define NF_VAULT_H
 

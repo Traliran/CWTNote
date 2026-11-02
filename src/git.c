@@ -1,5 +1,5 @@
 // CWTNote - local Git history for a vault (system git binary).
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-CWTNote-Commercial
 
 #include "git.h"
 #include "util.h"

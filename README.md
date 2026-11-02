@@ -198,10 +198,26 @@ data/            Desktop entry and application icon
 
 ## License
 
-CWTNote is free software: you can redistribute it and/or modify it under the
-terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
+CWTNote is dual-licensed. You may use it under either of the following
+licenses, at your option:
+
+1. GNU General Public License v3.0 or later (GPL-3.0-or-later)
+   The full text is in `LICENSES/GPL-3.0-or-later.txt`.
+
+   This is the license for open-source and community use. It requires that
+   derivative works be distributed under the same license and that source
+   code be made available.
+
+2. CWTNote Commercial License
+   The full text is in `LICENSES/Commercial.txt`.
+
+   This license is for use in proprietary or closed-source products, or in
+   contexts where the obligations of the GPL-3.0 cannot be met. To obtain
+   this license, contact: sitetake7511@gmail.com
+
+By contributing to this project, you agree that your contributions will be
+dual-licensed under both licenses above, and you grant the copyright holder
+the right to relicense your contributions under the Commercial License.
 
 CWTNote is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
