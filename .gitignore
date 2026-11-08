@@ -2,3 +2,6 @@
 *.d
 /cwtnote
 build/
+builddir/
+repo/
+.flatpak-builder/

@@ -1745,7 +1745,7 @@ static void show_about(NfApp *app) {
     AdwDialog *dialog = adw_about_dialog_new();
     adw_about_dialog_set_application_name(ADW_ABOUT_DIALOG(dialog), "CWTNote");
     adw_about_dialog_set_application_icon(ADW_ABOUT_DIALOG(dialog),
-                                          "org.cwtnote.CWTNote");
+                                          "io.github.Traliran.CWTNote");
     adw_about_dialog_set_version(ADW_ABOUT_DIALOG(dialog), NF_VERSION);
     adw_about_dialog_set_developer_name(ADW_ABOUT_DIALOG(dialog), "Traliran");
     adw_about_dialog_set_comments(

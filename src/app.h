@@ -11,7 +11,7 @@
 
 #include "vault.h"
 
-#define NF_VERSION "1.2.1"
+#define NF_VERSION "1.2.2"
 
 typedef struct _NfApp NfApp;
 

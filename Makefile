@@ -20,6 +20,7 @@ PREFIX   ?= /usr/local
 BINDIR   ?= $(PREFIX)/bin
 APPDIR   ?= $(PREFIX)/share/applications
 ICONDIR  ?= $(PREFIX)/share/icons/hicolor/scalable/apps
+METADATADIR ?= $(PREFIX)/share/metainfo
 
 all: $(BIN)
 
@@ -33,15 +34,18 @@ src/%.o: src/%.c
 
 install: $(BIN)
 	install -Dm755 $(BIN) $(DESTDIR)$(BINDIR)/$(BIN)
-	install -Dm644 data/org.cwtnote.CWTNote.desktop \
-		$(DESTDIR)$(APPDIR)/org.cwtnote.CWTNote.desktop
-	install -Dm644 data/icons/hicolor/scalable/apps/org.cwtnote.CWTNote.svg \
-		$(DESTDIR)$(ICONDIR)/org.cwtnote.CWTNote.svg
+	install -Dm644 data/io.github.Traliran.CWTNote.desktop \
+		$(DESTDIR)$(APPDIR)/io.github.Traliran.CWTNote.desktop
+	install -Dm644 data/icons/hicolor/scalable/apps/io.github.Traliran.CWTNote.svg \
+		$(DESTDIR)$(ICONDIR)/io.github.Traliran.CWTNote.svg
+	install -Dm644 data/io.github.Traliran.CWTNote.metainfo.xml \
+		$(DESTDIR)$(METADATADIR)/io.github.Traliran.CWTNote.metainfo.xml
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(BIN)
-	rm -f $(DESTDIR)$(APPDIR)/org.cwtnote.CWTNote.desktop
-	rm -f $(DESTDIR)$(ICONDIR)/org.cwtnote.CWTNote.svg
+	rm -f $(DESTDIR)$(APPDIR)/io.github.Traliran.CWTNote.desktop
+	rm -f $(DESTDIR)$(ICONDIR)/io.github.Traliran.CWTNote.svg
+	rm -f $(DESTDIR)$(METADATADIR)/io.github.Traliran.CWTNote.metainfo.xml
 
 clean:
 	rm -f $(BIN) $(OBJ) $(DEP)

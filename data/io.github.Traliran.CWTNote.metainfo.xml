@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Traliran -->
+<component type="desktop-application">
+  <id>io.github.Traliran.CWTNote</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>CWTNote</name>
+  <summary>Local-first Markdown notes with automatic Git history</summary>
+  <developer id="io.github.traliran">
+    <name>Traliran</name>
+  </developer>
+  <description>
+    <p>CWTNote is a local-first Markdown note application for the Linux desktop that keeps every note in a plain-text vault.</p>
+    <p>Notes are stored as plain Markdown files in a vault, and every save is recorded in a local Git repository.</p>
+    <ul>
+      <li>Markdown editor and live preview</li>
+      <li>Wikilinks, backlinks and embeds</li>
+      <li>Automatic local Git commits and per-note history</li>
+      <li>Quick note window for fast capture</li>
+    </ul>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Markdown editor with the note vault sidebar</caption>
+      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.2.2/data/screenshots/cwtnote-main.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Quick note window for fast capture</caption>
+      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.2.2/data/screenshots/cwtnote-quick-note.png</image>
+    </screenshot>
+  </screenshots>
+  <launchable type="desktop-id">io.github.Traliran.CWTNote.desktop</launchable>
+  <url type="homepage">https://github.com/Traliran/CWTNote</url>
+  <url type="bugtracker">https://github.com/Traliran/CWTNote/issues</url>
+  <url type="vcs-browser">https://github.com/Traliran/CWTNote</url>
+  <provides>
+    <binary>cwtnote</binary>
+  </provides>
+  <releases>
+    <release version="1.2.2" date="2026-11-08">
+      <description>
+        <p>This release renames the application ID to io.github.Traliran.CWTNote and adds Flatpak packaging.</p>
+        <ul>
+          <li>New application ID and matching desktop, icon, and metainfo files.</li>
+          <li>Flatpak manifest with a bundled Git runtime.</li>
+          <li>Version updated to 1.2.2.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.1" date="2026-11-02"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

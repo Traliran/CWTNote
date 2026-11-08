@@ -32,7 +32,7 @@ static int on_command_line(GApplication *application, GApplicationCommandLine *c
 
 int main(int argc, char **argv) {
     AdwApplication *application = adw_application_new(
-        "org.cwtnote.CWTNote", G_APPLICATION_HANDLES_COMMAND_LINE);
+        "io.github.Traliran.CWTNote", G_APPLICATION_HANDLES_COMMAND_LINE);
     g_application_set_version(G_APPLICATION(application), NF_VERSION);
 
     const GOptionEntry options[] = {

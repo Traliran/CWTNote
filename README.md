@@ -5,7 +5,7 @@ written in C with GTK 4 and libadwaita, keeps notes as plain `.md` files, and
 records every save in a local Git repository. No account, cloud service, or
 network connection is involved.
 
-![CWTNote icon](data/icons/hicolor/scalable/apps/org.cwtnote.CWTNote.svg)
+![CWTNote icon](data/icons/hicolor/scalable/apps/io.github.Traliran.CWTNote.svg)
 
 ## Features
 
