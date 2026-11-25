@@ -22,11 +22,11 @@
   <screenshots>
     <screenshot type="default">
       <caption>Markdown editor with the note vault sidebar</caption>
-      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.2.2/data/screenshots/cwtnote-main.png</image>
+      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.3.0/data/screenshots/cwtnote-main.png</image>
     </screenshot>
     <screenshot>
       <caption>Quick note window for fast capture</caption>
-      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.2.2/data/screenshots/cwtnote-quick-note.png</image>
+      <image type="source">https://raw.githubusercontent.com/Traliran/CWTNote/1.3.0/data/screenshots/cwtnote-quick-note.png</image>
     </screenshot>
   </screenshots>
   <launchable type="desktop-id">io.github.Traliran.CWTNote.desktop</launchable>
@@ -37,6 +37,18 @@
     <binary>cwtnote</binary>
   </provides>
   <releases>
+    <release version="1.3.0" date="2026-11-25">
+      <description>
+        <p>This release adds an editable Live Preview to the main editor.</p>
+        <ul>
+          <li>Markdown is formatted in place while the raw buffer text stays unchanged.</li>
+          <li>Syntax markers are hidden on all lines except the cursor or selection line.</li>
+          <li>Live Preview is enabled by default; the eye button toggles between Live and Reading views.</li>
+          <li>Source Mode is available from the menu for raw Markdown editing.</li>
+          <li>Open wikilinks and regular links with Ctrl+Click.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.2" date="2026-11-08">
       <description>
         <p>This release renames the application ID to io.github.Traliran.CWTNote and adds Flatpak packaging.</p>

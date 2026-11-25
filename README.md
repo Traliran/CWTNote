@@ -5,14 +5,19 @@ written in C with GTK 4 and libadwaita, keeps notes as plain `.md` files, and
 records every save in a local Git repository. No account, cloud service, or
 network connection is involved.
 
+**Current version:** 1.3.0
+
 ![CWTNote icon](data/icons/hicolor/scalable/apps/io.github.Traliran.CWTNote.svg)
 
 ## Features
 
 - Obsidian-style vault: folders and Markdown notes, no proprietary database.
 - GtkSourceView editor with Markdown syntax highlighting.
-- Live Markdown preview with headings, lists, quotes, code blocks, links and
-  emphasis.
+- Editable Live Preview: Markdown is formatted in place while the underlying
+  text stays plain Markdown, with syntax markers hidden except on the line you
+  are editing.
+- Reading view for rendered Markdown with headings, lists, quotes, code blocks,
+  links and emphasis, plus Source Mode for raw Markdown editing.
 - `[[Wikilinks]]` with autocomplete while typing.
 - Image and note embeds with `![[image.png]]` and `![[note.md]]`.
 - Backlinks panel showing notes that link to or embed the current note.
@@ -101,14 +106,16 @@ initialised inside the vault the first time it is opened.
   creation actions.
 - Type `[[` in a note to open the wikilink autocomplete. Use
   `[[Note name]]` or `[[Note name|display text]]`.
-- Click a wikilink in the preview to open the target note.
+- Ctrl+Click a wikilink or regular link in the editor or preview to open it.
 - Put `![[image.png]]` on its own line to embed an image. Images are looked up
   next to the current note first and then anywhere in the vault.
 - Put `![[Note.md]]` on its own line to embed another note. Its content is
   rendered with a quote-like left indent.
 - Use **Ctrl+S** to save immediately. Changes are also saved automatically
   shortly after you stop typing.
-- Toggle the preview with the eye button in the header.
+- Live Preview is enabled by default. The eye button in the header switches
+  between Live and Reading views, and **Menu → Source Mode** shows the raw
+  Markdown for editing.
 
 Notes deleted from CWTNote are moved to the system trash. Renaming a folder
 does not rewrite wikilinks inside other notes.
@@ -203,6 +210,8 @@ src/app.h        Shared application state
 src/git.c        Local Git wrapper (init, commit, log, show, revert)
 src/git.h
 src/main.c       Application entry point and --fast option
+src/livepreview.c Editable Live Preview formatting
+src/livepreview.h
 src/markdown.c   Markdown preview renderer
 src/markdown.h
 src/quick.c      Quick-note window
