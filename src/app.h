@@ -9,11 +9,18 @@
 #include <adwaita.h>
 #include <gtksourceview/gtksource.h>
 
+#include "livepreview.h"
 #include "vault.h"
 
 #define NF_VERSION "1.2.2"
 
 typedef struct _NfApp NfApp;
+
+typedef enum {
+    NF_VIEW_LIVE,
+    NF_VIEW_READING,
+    NF_VIEW_SOURCE
+} NfViewMode;
 
 struct _NfApp {
     GtkApplication *application;
@@ -40,6 +47,9 @@ struct _NfApp {
     GtkStack *editor_stack;
     GtkSourceView *source_view;
     GtkSourceBuffer *source_buffer;
+    NfLivePreview *live_preview;
+    NfViewMode view_mode;
+    NfViewMode edit_mode;
     GtkScrolledWindow *preview_scroll;
     GtkBox *backlinks_box;
     GtkRevealer *backlinks_revealer;

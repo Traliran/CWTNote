@@ -92,6 +92,8 @@ static void build_main_window(NfApp *app);
 static void build_setup_window(NfApp *app);
 static void sidebar_refresh(NfApp *app);
 static void update_preview(NfApp *app);
+static void apply_view_mode(NfApp *app, NfViewMode mode);
+static void on_preview_toggled(GtkToggleButton *button, gpointer user_data);
 static void update_backlinks(NfApp *app);
 static void update_active_row(NfApp *app);
 static gboolean save_active(NfApp *app, gboolean commit);
@@ -458,8 +460,7 @@ static gboolean save_active(NfApp *app, gboolean commit) {
     if (commit)
         commit_changes(app);
 
-    if (app->preview_button != NULL &&
-        gtk_toggle_button_get_active(app->preview_button))
+    if (app->view_mode == NF_VIEW_READING)
         update_preview(app);
     if (app->backlinks_revealer != NULL &&
         gtk_revealer_get_reveal_child(app->backlinks_revealer))
@@ -491,6 +492,8 @@ static void set_buffer_text(NfApp *app, const char *text) {
     app->loading = FALSE;
     app->dirty = FALSE;
     gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(app->source_buffer), FALSE);
+    if (app->live_preview != NULL)
+        nf_live_preview_refresh(app->live_preview);
 }
 
 static void reload_active(NfApp *app) {
@@ -511,8 +514,7 @@ static void reload_active(NfApp *app) {
     g_free(valid);
     update_window_title(app);
 
-    if (app->preview_button != NULL &&
-        gtk_toggle_button_get_active(app->preview_button))
+    if (app->view_mode == NF_VIEW_READING)
         update_preview(app);
     if (app->backlinks_revealer != NULL &&
         gtk_revealer_get_reveal_child(app->backlinks_revealer))
@@ -553,8 +555,7 @@ static void open_note(NfApp *app, const char *relpath) {
         gtk_stack_set_visible_child_name(app->content_stack, "editor");
     update_active_row(app);
 
-    if (app->preview_button != NULL &&
-        gtk_toggle_button_get_active(app->preview_button))
+    if (app->view_mode == NF_VIEW_READING)
         update_preview(app);
     if (app->backlinks_revealer != NULL &&
         gtk_revealer_get_reveal_child(app->backlinks_revealer))
@@ -641,6 +642,52 @@ static void update_preview(NfApp *app) {
         on_embed, app);
     gtk_scrolled_window_set_child(app->preview_scroll, view);
     g_free(text);
+}
+
+static void live_wiki_cb(const char *target, gpointer user_data) {
+    on_wiki_link(target, user_data);
+}
+
+static void live_uri_cb(const char *uri, gpointer user_data) {
+    on_external_link(uri, user_data);
+}
+
+static void apply_view_mode(NfApp *app, NfViewMode mode) {
+    app->view_mode = mode;
+
+    if (app->editor_stack != NULL) {
+        if (mode == NF_VIEW_READING) {
+            if (app->live_preview != NULL)
+                nf_live_preview_set_enabled(app->live_preview, FALSE);
+            update_preview(app);
+            gtk_stack_set_visible_child_name(app->editor_stack, "preview");
+        } else {
+            gtk_stack_set_visible_child_name(app->editor_stack, "source");
+            if (app->live_preview != NULL) {
+                nf_live_preview_set_enabled(app->live_preview,
+                                            mode == NF_VIEW_LIVE);
+            }
+        }
+    }
+
+    if (app->preview_button != NULL) {
+        g_signal_handlers_block_by_func(app->preview_button,
+                                        on_preview_toggled, app);
+        gtk_toggle_button_set_active(app->preview_button,
+                                     mode == NF_VIEW_READING);
+        g_signal_handlers_unblock_by_func(app->preview_button,
+                                          on_preview_toggled, app);
+    }
+
+    GAction *source_action =
+        g_action_map_lookup_action(G_ACTION_MAP(app->application), "source-mode");
+    if (source_action != NULL && g_action_get_state(source_action) != NULL) {
+        gboolean active = app->edit_mode == NF_VIEW_SOURCE;
+        if (g_variant_get_boolean(g_action_get_state(source_action)) != active) {
+            g_simple_action_set_state(G_SIMPLE_ACTION(source_action),
+                                      g_variant_new_boolean(active));
+        }
+    }
 }
 
 static void on_backlink_clicked(GtkButton *button, gpointer user_data) {
@@ -875,6 +922,8 @@ static void on_buffer_changed(GtkTextBuffer *buffer, gpointer user_data) {
     app->dirty = TRUE;
     schedule_save(app);
     completion_update(app);
+    if (app->live_preview != NULL)
+        nf_live_preview_schedule(app->live_preview);
 }
 
 static gboolean on_source_key_pressed(GtkEventControllerKey *controller,
@@ -1862,6 +1911,23 @@ static void action_quit(GSimpleAction *action, GVariant *parameter,
     g_application_quit(G_APPLICATION(app->application));
 }
 
+static void action_toggle_source(GSimpleAction *action, GVariant *parameter,
+                                 gpointer user_data) {
+    (void)parameter;
+    NfApp *app = user_data;
+    gboolean active = !g_variant_get_boolean(g_action_get_state(G_ACTION(action)));
+    g_simple_action_set_state(action, g_variant_new_boolean(active));
+
+    if (active) {
+        app->edit_mode = NF_VIEW_SOURCE;
+        apply_view_mode(app, NF_VIEW_SOURCE);
+    } else {
+        app->edit_mode = NF_VIEW_LIVE;
+        if (app->view_mode != NF_VIEW_READING)
+            apply_view_mode(app, NF_VIEW_LIVE);
+    }
+}
+
 static void action_toggle_preview(GSimpleAction *action, GVariant *parameter,
                                   gpointer user_data) {
     (void)action;
@@ -1926,6 +1992,8 @@ static void register_actions(NfApp *app) {
         {.name = "about", .activate = action_about},
         {.name = "quit", .activate = action_quit},
         {.name = "toggle-preview", .activate = action_toggle_preview},
+        {.name = "source-mode", .activate = action_toggle_source,
+         .state = "false"},
         {.name = "toggle-backlinks", .activate = action_toggle_backlinks},
         {.name = "focus-search", .activate = action_focus_search},
         {.name = "toggle-sidebar", .activate = action_toggle_sidebar},
@@ -2000,12 +2068,11 @@ static void on_main_destroy(GtkWindow *window, gpointer user_data) {
 static void on_preview_toggled(GtkToggleButton *button, gpointer user_data) {
     NfApp *app = user_data;
     if (gtk_toggle_button_get_active(button)) {
-        update_preview(app);
-        gtk_stack_set_visible_child_name(app->editor_stack, "preview");
+        if (app->view_mode != NF_VIEW_READING)
+            app->edit_mode = app->view_mode;
+        apply_view_mode(app, NF_VIEW_READING);
     } else {
-        gtk_stack_set_visible_child_name(app->editor_stack, "source");
-        if (app->source_view != NULL)
-            gtk_widget_grab_focus(GTK_WIDGET(app->source_view));
+        apply_view_mode(app, app->edit_mode);
     }
 }
 
@@ -2080,6 +2147,8 @@ static GtkWidget *build_editor_stack(NfApp *app) {
     on_dark_changed(NULL, NULL, app);
 
     g_signal_connect(buffer, "changed", G_CALLBACK(on_buffer_changed), app);
+
+    app->live_preview = nf_live_preview_new(view, live_wiki_cb, live_uri_cb, app);
 
     GtkEventController *key = gtk_event_controller_key_new();
     g_signal_connect(key, "key-pressed", G_CALLBACK(on_source_key_pressed), app);
@@ -2217,7 +2286,7 @@ static GtkWidget *build_header(NfApp *app) {
 
     app->preview_button = icon_toggle_button("view-reveal-symbolic");
     gtk_widget_set_tooltip_text(GTK_WIDGET(app->preview_button),
-                                "Toggle preview");
+                                "Toggle reading view");
     g_signal_connect(app->preview_button, "toggled",
                      G_CALLBACK(on_preview_toggled), app);
     adw_header_bar_pack_end(header, GTK_WIDGET(app->preview_button));
@@ -2238,6 +2307,7 @@ static GtkWidget *build_header(NfApp *app) {
     g_menu_append(menu, "New Note", "app.new-note");
     g_menu_append(menu, "New Folder", "app.new-folder");
     g_menu_append(menu, "Save", "app.save");
+    g_menu_append(menu, "Source Mode", "app.source-mode");
 
     GMenu *notes = g_menu_new();
     g_menu_append(notes, "Rename Note", "app.rename");
@@ -2629,6 +2699,8 @@ void nf_app_refresh(NfApp *app) {
 NfApp *nf_app_new(GtkApplication *application) {
     NfApp *app = g_new0(NfApp, 1);
     app->application = application;
+    app->view_mode = NF_VIEW_LIVE;
+    app->edit_mode = NF_VIEW_LIVE;
     app->expanded = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
     app->rows = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
     register_actions(app);
@@ -2641,6 +2713,7 @@ void nf_app_free(NfApp *app) {
         return;
 
     cancel_pending_save(app);
+    nf_live_preview_free(app->live_preview);
     g_free(app->vault);
     nf_vault_free(app->vault_handle);
     g_free(app->setup_hint);
